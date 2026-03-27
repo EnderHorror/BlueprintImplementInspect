@@ -1,0 +1,25 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0",
+	"FriendlyName": "Blueprint Implement Inspect",
+	"Description": "Scan blueprints under a content path and report whether they contain executable graph logic.",
+	"Category": "Editor",
+	"CreatedBy": "JinYiWei",
+	"CreatedByURL": "",
+	"DocsURL": "",
+	"MarketplaceURL": "",
+	"SupportURL": "",
+	"CanContainContent": false,
+	"IsBetaVersion": false,
+	"IsExperimentalVersion": false,
+	"Installed": false,
+	"EnabledByDefault": true,
+	"Modules": [
+		{
+			"Name": "BlueprintImplementInspect",
+			"Type": "Editor",
+			"LoadingPhase": "Default"
+		}
+	]
+}
