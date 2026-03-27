@@ -2,6 +2,8 @@
 
 一个 Unreal Engine 编辑器插件，用于扫描指定目录下的蓝图资产，检测每个蓝图是否包含可执行的图表逻辑，并以列表形式展示节点数量统计信息。
 
+![插件演示](Demo.png)
+
 ---
 
 ## 功能特性
@@ -103,11 +105,3 @@ Plugins/BlueprintImplementInspect/
         ├── SBlueprintImplementInspectWidget.h
         └── SBlueprintImplementInspectWidget.cpp
 ```
-
----
-
-## 版本信息
-
-- **版本**：1.0  
-- **类型**：Editor 插件（不含 Runtime 代码）  
-- **作者**：JinYiWei  
