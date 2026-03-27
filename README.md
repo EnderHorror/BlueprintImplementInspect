@@ -105,9 +105,3 @@ Plugins/BlueprintImplementInspect/
 ```
 
 ---
-
-## 版本信息
-
-- **版本**：1.0  
-- **类型**：Editor 插件（不含 Runtime 代码）  
-- **作者**：JinYiWei  
