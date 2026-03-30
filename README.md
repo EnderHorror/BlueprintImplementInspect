@@ -20,12 +20,6 @@
 
 ---
 
-## 安装方式
-
-该插件已包含在项目的 `Plugins/BlueprintImplementInspect/` 目录下，并已在 `JinYiWei.uproject` 中启用，无需额外安装。
-
-重新生成项目文件后在 Unreal Editor 中编译即可使用。
-
 ---
 
 ## 使用方法
