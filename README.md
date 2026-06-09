@@ -17,6 +17,7 @@
 - **父类显示**：列表中显示每个蓝图的直接父类名称
 - **列排序**：点击"总节点数"或"逻辑节点数"列表头可升序/降序排列
 - **定位资产**：点击列表中的任意蓝图行，自动在 Content Browser 中定位并高亮该资产
+- **LLM文本导出**：选中扫描结果中的蓝图后，可复制或保存完整蓝图文本，包含类信息、接口、变量、CDO默认值、图表、函数、节点、引脚连接和接近 Ctrl+C 的节点文本
 
 ---
 
@@ -66,6 +67,17 @@
 5. **定位蓝图**  
    点击列表中任意一行，Content Browser 将自动定位并选中对应蓝图资产。
 
+6. **导出蓝图文本给 LLM**  
+   选中列表中的蓝图后，点击 **4) 复制选中蓝图文本** 可直接复制到剪贴板；点击 **保存为TXT** 可输出到文本文件。导出内容包含：
+
+   | 区块 | 说明 |
+   |------|------|
+   | Class | 蓝图类型、编译状态、父类、接口 |
+   | Blueprint Variables | 蓝图变量名、分类、Pin 类型、默认值、完整元数据 |
+   | CDO Defaults | GeneratedClass CDO 上可编辑属性的导出值 |
+   | Graphs | Ubergraph、函数图、宏图、委托签名图的节点、引脚、连接 |
+   | CtrlCNodeText | 使用 Unreal 图节点导出接口生成的节点复制文本，接近编辑器 Ctrl+C 节点格式 |
+
 ---
 
 ## 逻辑节点判定规则
@@ -84,9 +96,10 @@
 ## 模块依赖
 
 ```
-AssetRegistry, BlueprintGraph, ClassViewer, ContentBrowser,
-CoreUObject, EditorFramework, Engine, GraphEditor, InputCore,
-Kismet, PropertyEditor, Slate, SlateCore, ToolMenus, UnrealEd
+ApplicationCore, AssetRegistry, BlueprintGraph, ClassViewer,
+ContentBrowser, CoreUObject, DesktopPlatform, EditorFramework,
+Engine, GraphEditor, InputCore, Kismet, PropertyEditor,
+Projects, Slate, SlateCore, ToolMenus, UnrealEd
 ```
 
 ---
