@@ -24,10 +24,6 @@
 
 该插件已放在项目目录中：
 
-`Projects/JinYiWei/Plugins/BlueprintImplementInspect/`
-
-并已在 `Projects/JinYiWei/JinYiWei.uproject` 中启用，一般无需额外安装。
-
 如果是首次拉取或插件未显示：
 
 1. 关闭 Unreal Editor。
