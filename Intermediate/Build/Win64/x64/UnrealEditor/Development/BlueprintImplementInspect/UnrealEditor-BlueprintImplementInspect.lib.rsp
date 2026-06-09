@@ -1,0 +1,14 @@
+/NOLOGO
+/errorReport:prompt
+/MACHINE:x64
+/SUBSYSTEM:WINDOWS
+/DEF
+/NAME:"UnrealEditor-BlueprintImplementInspect.dll"
+/IGNORE:4221
+/NODEFAULTLIB
+"../Intermediate/Build/Win64/x64/UnrealEditor/Development/UnrealEd/SharedPCH.UnrealEd.Project.ValApi.ValExpApi.Cpp20.h.obj"
+"E:/JinYiWeiPerfoce/Projects/JinYiWei/Plugins/BlueprintImplementInspect/Intermediate/Build/Win64/x64/UnrealEditor/Development/BlueprintImplementInspect/Module.BlueprintImplementInspect.cpp.obj"
+"E:/JinYiWeiPerfoce/Projects/JinYiWei/Plugins/BlueprintImplementInspect/Intermediate/Build/Win64/x64/UnrealEditor/Development/BlueprintImplementInspect/BlueprintImplementInspectModule.cpp.obj"
+"E:/JinYiWeiPerfoce/Projects/JinYiWei/Plugins/BlueprintImplementInspect/Intermediate/Build/Win64/x64/UnrealEditor/Development/BlueprintImplementInspect/SBlueprintImplementInspectWidget.cpp.obj"
+"../Intermediate/Build/Win64/x64/UnrealEditor/Development/Default.rc2.res"
+/OUT:"E:/JinYiWeiPerfoce/Projects/JinYiWei/Plugins/BlueprintImplementInspect/Intermediate/Build/Win64/x64/UnrealEditor/Development/BlueprintImplementInspect/UnrealEditor-BlueprintImplementInspect.lib"

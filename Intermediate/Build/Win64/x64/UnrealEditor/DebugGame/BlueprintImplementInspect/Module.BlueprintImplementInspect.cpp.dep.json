@@ -1,0 +1,15 @@
+{
+    "Version": "1.2",
+    "Data": {
+        "Source": "e:\\jinyiweiperfoce\\projects\\jinyiwei\\plugins\\blueprintimplementinspect\\intermediate\\build\\win64\\x64\\unrealeditor\\debuggame\\blueprintimplementinspect\\module.blueprintimplementinspect.cpp",
+        "ProvidedModule": "",
+        "PCH": "e:\\jinyiweiperfoce\\engine\\intermediate\\build\\win64\\x64\\unrealeditor\\development\\unrealed\\sharedpch.unrealed.project.nonoptimized.valapi.valexpapi.cpp20.h.pch",
+        "Includes": [
+            "e:\\jinyiweiperfoce\\projects\\jinyiwei\\plugins\\blueprintimplementinspect\\intermediate\\build\\win64\\x64\\unrealeditor\\debuggame\\blueprintimplementinspect\\definitions.blueprintimplementinspect.h",
+            "e:\\jinyiweiperfoce\\projects\\jinyiwei\\plugins\\blueprintimplementinspect\\intermediate\\build\\win64\\x64\\unrealeditor\\debuggame\\blueprintimplementinspect\\permoduleinline.gen.cpp",
+            "e:\\jinyiweiperfoce\\engine\\source\\runtime\\core\\public\\hal\\permoduleinline.inl"
+        ],
+        "ImportedModules": [],
+        "ImportedHeaderUnits": []
+    }
+}

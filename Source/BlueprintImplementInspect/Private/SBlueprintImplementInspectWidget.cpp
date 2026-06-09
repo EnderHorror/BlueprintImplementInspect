@@ -3,17 +3,27 @@
 #include "AssetRegistry/AssetData.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "ContentBrowserModule.h"
+#include "DesktopPlatformModule.h"
 #include "EdGraph/EdGraph.h"
 #include "EdGraph/EdGraphNode.h"
 #include "EdGraph/EdGraphPin.h"
+#include "EdGraphUtilities.h"
 #include "EdGraphSchema_K2.h"
 #include "Engine/Blueprint.h"
+#include "Framework/Application/SlateApplication.h"
+#include "HAL/PlatformApplicationMisc.h"
 #include "IContentBrowserSingleton.h"
+#include "IDesktopPlatform.h"
 #include "K2Node_FunctionEntry.h"
 #include "K2Node_FunctionResult.h"
 #include "K2Node_Knot.h"
 #include "K2Node_Tunnel.h"
+#include "Misc/FileHelper.h"
+#include "Misc/MessageDialog.h"
+#include "Misc/Paths.h"
+#include "ObjectTools.h"
 #include "PropertyCustomizationHelpers.h"
+#include "UObject/UnrealType.h"
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Input/SComboButton.h"
 #include "Widgets/Layout/SBox.h"
@@ -165,14 +175,39 @@ void SBlueprintImplementInspectWidget::Construct(const FArguments& InArgs)
 		.AutoHeight()
 		.Padding(8.0f, 0.0f, 8.0f, 8.0f)
 		[
-			SNew(SButton)
-			.Text_Lambda([this]()
-			{
-				return bScanning
-					? LOCTEXT("StopScanButton", "取消扫描")
-					: LOCTEXT("ScanButton", "3) 扫描蓝图");
-			})
-			.OnClicked(this, &SBlueprintImplementInspectWidget::OnScanButtonClicked)
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(0.0f, 0.0f, 8.0f, 0.0f)
+			[
+				SNew(SButton)
+				.Text_Lambda([this]()
+				{
+					return bScanning
+						? LOCTEXT("StopScanButton", "取消扫描")
+						: LOCTEXT("ScanButton", "3) 扫描蓝图");
+				})
+				.OnClicked(this, &SBlueprintImplementInspectWidget::OnScanButtonClicked)
+			]
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(0.0f, 0.0f, 8.0f, 0.0f)
+			[
+				SNew(SButton)
+				.Text(LOCTEXT("CopyBlueprintTextButton", "4) 复制选中蓝图文本"))
+				.ToolTipText(LOCTEXT("CopyBlueprintTextTooltip", "将列表中选中的蓝图导出为适合喂给 LLM 的文本，并复制到剪贴板。"))
+				.IsEnabled_Lambda([this]() { return SelectedItem.IsValid(); })
+				.OnClicked(this, &SBlueprintImplementInspectWidget::OnCopySelectedBlueprintTextClicked)
+			]
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			[
+				SNew(SButton)
+				.Text(LOCTEXT("SaveBlueprintTextButton", "保存为TXT"))
+				.ToolTipText(LOCTEXT("SaveBlueprintTextTooltip", "将列表中选中的蓝图导出为文本文件。"))
+				.IsEnabled_Lambda([this]() { return SelectedItem.IsValid(); })
+				.OnClicked(this, &SBlueprintImplementInspectWidget::OnSaveSelectedBlueprintTextClicked)
+			]
 		]
 		+ SVerticalBox::Slot()
 		.AutoHeight()
@@ -275,6 +310,8 @@ void SBlueprintImplementInspectWidget::OnSetBaseClass(const UClass* InClass)
 
 void SBlueprintImplementInspectWidget::OnResultSelectionChanged(TSharedPtr<FBlueprintInspectItem> InItem, ESelectInfo::Type SelectInfo)
 {
+	SelectedItem = InItem;
+
 	if (!InItem.IsValid() || InItem->AssetPath.IsEmpty())
 	{
 		return;
@@ -323,8 +360,73 @@ FReply SBlueprintImplementInspectWidget::OnScanButtonClicked()
 	return FReply::Handled();
 }
 
+FReply SBlueprintImplementInspectWidget::OnCopySelectedBlueprintTextClicked()
+{
+	UBlueprint* Blueprint = LoadBlueprintFromItem(SelectedItem);
+	if (Blueprint == nullptr)
+	{
+		FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("CopyBlueprintTextNoBlueprint", "没有可导出的蓝图，请先在列表中选中一个蓝图。"));
+		return FReply::Handled();
+	}
+
+	const FString ExportText = ExportBlueprintToText(Blueprint, SelectedItem->AssetPath);
+	FPlatformApplicationMisc::ClipboardCopy(*ExportText);
+	FMessageDialog::Open(EAppMsgType::Ok, FText::Format(
+		LOCTEXT("CopyBlueprintTextDone", "已复制蓝图文本到剪贴板。字符数：{0}"),
+		FText::AsNumber(ExportText.Len())));
+	return FReply::Handled();
+}
+
+FReply SBlueprintImplementInspectWidget::OnSaveSelectedBlueprintTextClicked()
+{
+	UBlueprint* Blueprint = LoadBlueprintFromItem(SelectedItem);
+	if (Blueprint == nullptr)
+	{
+		FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("SaveBlueprintTextNoBlueprint", "没有可导出的蓝图，请先在列表中选中一个蓝图。"));
+		return FReply::Handled();
+	}
+
+	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
+	if (DesktopPlatform == nullptr)
+	{
+		return FReply::Handled();
+	}
+
+	TArray<FString> SaveFilenames;
+	const FString DefaultFilename = FString::Printf(TEXT("%s_BlueprintText.txt"), *Blueprint->GetName());
+	const void* ParentWindowHandle = FSlateApplication::Get().FindBestParentWindowHandleForDialogs(nullptr);
+	const bool bPickedFile = DesktopPlatform->SaveFileDialog(
+		ParentWindowHandle,
+		TEXT("保存蓝图文本"),
+		FPaths::ProjectSavedDir(),
+		DefaultFilename,
+		TEXT("Text Files (*.txt)|*.txt|All Files (*.*)|*.*"),
+		EFileDialogFlags::None,
+		SaveFilenames);
+
+	if (!bPickedFile || SaveFilenames.Num() == 0)
+	{
+		return FReply::Handled();
+	}
+
+	const FString ExportText = ExportBlueprintToText(Blueprint, SelectedItem->AssetPath);
+	if (!FFileHelper::SaveStringToFile(ExportText, *SaveFilenames[0], FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM))
+	{
+		FMessageDialog::Open(EAppMsgType::Ok, FText::Format(
+			LOCTEXT("SaveBlueprintTextFailed", "保存失败：{0}"),
+			FText::FromString(SaveFilenames[0])));
+		return FReply::Handled();
+	}
+
+	FMessageDialog::Open(EAppMsgType::Ok, FText::Format(
+		LOCTEXT("SaveBlueprintTextDone", "已保存蓝图文本：{0}"),
+		FText::FromString(SaveFilenames[0])));
+	return FReply::Handled();
+}
+
 void SBlueprintImplementInspectWidget::StartScan()
 {
+	SelectedItem.Reset();
 	ScanItems.Reset();
 	PendingAssets.Reset();
 	ScanIndex = 0;
@@ -560,6 +662,202 @@ bool SBlueprintImplementInspectWidget::IsLogicNode(const UEdGraphNode* Node) con
 
 	return false;
 }
+
+UBlueprint* SBlueprintImplementInspectWidget::LoadBlueprintFromItem(const TSharedPtr<FBlueprintInspectItem>& InItem) const
+{
+	if (!InItem.IsValid() || InItem->AssetPath.IsEmpty())
+	{
+		return nullptr;
+	}
+
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+	const FAssetData AssetData = AssetRegistryModule.Get().GetAssetByObjectPath(FSoftObjectPath(InItem->AssetPath));
+	return Cast<UBlueprint>(AssetData.GetAsset());
+}
+
+FString SBlueprintImplementInspectWidget::ExportBlueprintToText(UBlueprint* Blueprint, const FString& AssetPath) const
+{
+	FStringBuilderBase Builder;
+	Builder.Appendf(TEXT("# Blueprint LLM Export\n"));
+	Builder.Appendf(TEXT("Name: %s\n"), *Blueprint->GetName());
+	Builder.Appendf(TEXT("AssetPath: %s\n"), *AssetPath);
+	Builder.Appendf(TEXT("Package: %s\n"), *Blueprint->GetOutermost()->GetName());
+	Builder.Appendf(TEXT("GeneratedClass: %s\n"), Blueprint->GeneratedClass ? *Blueprint->GeneratedClass->GetPathName() : TEXT("None"));
+	Builder.Appendf(TEXT("ParentClass: %s\n"), Blueprint->ParentClass ? *Blueprint->ParentClass->GetPathName() : TEXT("None"));
+	Builder.Append(TEXT("\n"));
+
+	AppendBlueprintClassInfo(Builder, Blueprint);
+	AppendBlueprintVariables(Builder, Blueprint);
+	AppendClassDefaults(Builder, Blueprint);
+	AppendBlueprintGraphs(Builder, Blueprint);
+
+	return Builder.ToString();
+}
+
+void SBlueprintImplementInspectWidget::AppendBlueprintClassInfo(FStringBuilderBase& Builder, UBlueprint* Blueprint) const
+{
+	Builder.Append(TEXT("## Class\n"));
+	Builder.Appendf(TEXT("BlueprintType: %s\n"), *UEnum::GetValueAsString(Blueprint->BlueprintType));
+	Builder.Appendf(TEXT("BlueprintStatus: %s\n"), *UEnum::GetValueAsString(Blueprint->Status));
+	Builder.Appendf(TEXT("ImplementedInterfaces: %d\n"), Blueprint->ImplementedInterfaces.Num());
+	for (const FBPInterfaceDescription& InterfaceDescription : Blueprint->ImplementedInterfaces)
+	{
+		Builder.Appendf(TEXT("- %s\n"), InterfaceDescription.Interface ? *InterfaceDescription.Interface->GetPathName() : TEXT("None"));
+	}
+	Builder.Append(TEXT("\n"));
+}
+
+void SBlueprintImplementInspectWidget::AppendBlueprintVariables(FStringBuilderBase& Builder, UBlueprint* Blueprint) const
+{
+	Builder.Append(TEXT("## Blueprint Variables\n"));
+	if (Blueprint->NewVariables.Num() == 0)
+	{
+		Builder.Append(TEXT("(none)\n\n"));
+		return;
+	}
+
+	for (const FBPVariableDescription& Variable : Blueprint->NewVariables)
+	{
+		Builder.Appendf(TEXT("- Name: %s\n"), *Variable.VarName.ToString());
+		Builder.Appendf(TEXT("  Category: %s\n"), *Variable.Category.ToString());
+		Builder.Appendf(TEXT("  Type: %s\n"), *Variable.VarType.PinCategory.ToString());
+		Builder.Appendf(TEXT("  SubCategory: %s\n"), *Variable.VarType.PinSubCategory.ToString());
+		Builder.Appendf(TEXT("  SubCategoryObject: %s\n"), Variable.VarType.PinSubCategoryObject.IsValid() ? *Variable.VarType.PinSubCategoryObject->GetPathName() : TEXT("None"));
+		Builder.Appendf(TEXT("  Container: %s\n"), *UEnum::GetValueAsString(Variable.VarType.ContainerType));
+		Builder.Appendf(TEXT("  DefaultValue: %s\n"), Variable.DefaultValue.IsEmpty() ? TEXT("<empty>") : *Variable.DefaultValue);
+		Builder.Append(TEXT("  MetaData:\n"));
+		if (Variable.MetaDataArray.Num() == 0)
+		{
+			Builder.Append(TEXT("    (none)\n"));
+		}
+		else
+		{
+			for (const FBPVariableMetaDataEntry& MetaDataEntry : Variable.MetaDataArray)
+			{
+				Builder.Appendf(TEXT("    - %s: %s\n"), *MetaDataEntry.DataKey.ToString(), MetaDataEntry.DataValue.IsEmpty() ? TEXT("<empty>") : *MetaDataEntry.DataValue);
+			}
+		}
+	}
+	Builder.Append(TEXT("\n"));
+}
+
+void SBlueprintImplementInspectWidget::AppendClassDefaults(FStringBuilderBase& Builder, UBlueprint* Blueprint) const
+{
+	Builder.Append(TEXT("## CDO Defaults\n"));
+	UClass* GeneratedClass = Blueprint->GeneratedClass;
+	UObject* CDO = GeneratedClass ? GeneratedClass->GetDefaultObject() : nullptr;
+	if (GeneratedClass == nullptr || CDO == nullptr)
+	{
+		Builder.Append(TEXT("(no generated class CDO)\n\n"));
+		return;
+	}
+
+	for (TFieldIterator<FProperty> PropertyIt(GeneratedClass, EFieldIteratorFlags::IncludeSuper); PropertyIt; ++PropertyIt)
+	{
+		FProperty* Property = *PropertyIt;
+		if (Property == nullptr || Property->HasAnyPropertyFlags(CPF_Transient | CPF_Deprecated | CPF_DisableEditOnInstance))
+		{
+			continue;
+		}
+
+		FString ValueText;
+		Property->ExportText_InContainer(0, ValueText, CDO, CDO, CDO, PPF_None);
+		Builder.Appendf(TEXT("- %s (%s): %s\n"), *Property->GetName(), *Property->GetCPPType(), ValueText.IsEmpty() ? TEXT("<empty>") : *ValueText);
+	}
+	Builder.Append(TEXT("\n"));
+}
+
+void SBlueprintImplementInspectWidget::AppendBlueprintGraphs(FStringBuilderBase& Builder, UBlueprint* Blueprint) const
+{
+	auto AppendGraph = [&Builder](const TCHAR* SectionName, const UEdGraph* Graph)
+	{
+		if (Graph == nullptr)
+		{
+			return;
+		}
+
+		Builder.Appendf(TEXT("### %s: %s\n"), SectionName, *Graph->GetName());
+		Builder.Appendf(TEXT("NodeCount: %d\n"), Graph->Nodes.Num());
+
+		for (const UEdGraphNode* Node : Graph->Nodes)
+		{
+			if (Node == nullptr)
+			{
+				continue;
+			}
+
+			Builder.Appendf(TEXT("\nNode: %s\n"), *Node->GetName());
+			Builder.Appendf(TEXT("Title: %s\n"), *Node->GetNodeTitle(ENodeTitleType::FullTitle).ToString());
+			Builder.Appendf(TEXT("Class: %s\n"), *Node->GetClass()->GetPathName());
+			Builder.Appendf(TEXT("Comment: %s\n"), Node->NodeComment.IsEmpty() ? TEXT("<empty>") : *Node->NodeComment);
+			Builder.Appendf(TEXT("Position: X=%d Y=%d\n"), Node->NodePosX, Node->NodePosY);
+			Builder.Append(TEXT("Pins:\n"));
+
+			for (const UEdGraphPin* Pin : Node->Pins)
+			{
+				if (Pin == nullptr)
+				{
+					continue;
+				}
+
+				Builder.Appendf(TEXT("  - %s [%s] Type=%s Default=%s Links="),
+					*Pin->PinName.ToString(),
+					Pin->Direction == EGPD_Input ? TEXT("Input") : TEXT("Output"),
+					*Pin->PinType.PinCategory.ToString(),
+					Pin->DefaultValue.IsEmpty() ? TEXT("<empty>") : *Pin->DefaultValue);
+
+				if (Pin->LinkedTo.Num() == 0)
+				{
+					Builder.Append(TEXT("None\n"));
+					continue;
+				}
+
+				for (int32 LinkIndex = 0; LinkIndex < Pin->LinkedTo.Num(); ++LinkIndex)
+				{
+					const UEdGraphPin* LinkedPin = Pin->LinkedTo[LinkIndex];
+					Builder.Appendf(TEXT("%s%s.%s"),
+						LinkIndex > 0 ? TEXT(", ") : TEXT(""),
+						LinkedPin && LinkedPin->GetOwningNode() ? *LinkedPin->GetOwningNode()->GetName() : TEXT("None"),
+						LinkedPin ? *LinkedPin->PinName.ToString() : TEXT("None"));
+				}
+				Builder.Append(TEXT("\n"));
+			}
+		}
+
+		TSet<UObject*> NodesToExport;
+		for (UEdGraphNode* NodeToExport : Graph->Nodes)
+		{
+			if (NodeToExport != nullptr)
+			{
+				NodesToExport.Add(NodeToExport);
+			}
+		}
+
+		FString GraphCopyText;
+		FEdGraphUtilities::ExportNodesToText(NodesToExport, GraphCopyText);
+		Builder.Append(TEXT("\nCtrlCNodeText:\n"));
+		Builder.Append(GraphCopyText.IsEmpty() ? TEXT("<empty>") : GraphCopyText);
+		Builder.Append(TEXT("\n\n"));
+	};
+
+	Builder.Append(TEXT("## Graphs\n"));
+	for (const UEdGraph* Graph : Blueprint->UbergraphPages)
+	{
+		AppendGraph(TEXT("Ubergraph"), Graph);
+	}
+	for (const UEdGraph* Graph : Blueprint->FunctionGraphs)
+	{
+		AppendGraph(TEXT("Function"), Graph);
+	}
+	for (const UEdGraph* Graph : Blueprint->MacroGraphs)
+	{
+		AppendGraph(TEXT("Macro"), Graph);
+	}
+	for (const UEdGraph* Graph : Blueprint->DelegateSignatureGraphs)
+	{
+		AppendGraph(TEXT("DelegateSignature"), Graph);
+	}
+	}
 
 void SBlueprintImplementInspectWidget::RefreshSummaryText()
 {

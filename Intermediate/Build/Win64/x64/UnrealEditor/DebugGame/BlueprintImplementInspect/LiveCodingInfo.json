@@ -1,0 +1,10 @@
+{
+	"RemapUnityFiles": 
+	{
+		"Module.BlueprintImplementInspect.cpp.obj": [
+			"PerModuleInline.gen.cpp.obj",
+			"BlueprintImplementInspectModule.cpp.obj",
+			"SBlueprintImplementInspectWidget.cpp.obj"
+		]
+	}
+}

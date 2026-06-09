@@ -1,0 +1,23 @@
+{
+    "Version": "1.2",
+    "Data": {
+        "Source": "e:\\jinyiweiperfoce\\projects\\jinyiwei\\plugins\\blueprintimplementinspect\\source\\blueprintimplementinspect\\private\\blueprintimplementinspectmodule.cpp",
+        "ProvidedModule": "",
+        "PCH": "e:\\jinyiweiperfoce\\engine\\intermediate\\build\\win64\\x64\\unrealeditor\\development\\unrealed\\sharedpch.unrealed.project.valapi.valexpapi.cpp20.h.pch",
+        "Includes": [
+            "e:\\jinyiweiperfoce\\projects\\jinyiwei\\plugins\\blueprintimplementinspect\\intermediate\\build\\win64\\x64\\unrealeditor\\development\\blueprintimplementinspect\\definitions.blueprintimplementinspect.h",
+            "e:\\jinyiweiperfoce\\projects\\jinyiwei\\plugins\\blueprintimplementinspect\\source\\blueprintimplementinspect\\public\\blueprintimplementinspectmodule.h",
+            "e:\\jinyiweiperfoce\\engine\\source\\editor\\leveleditor\\public\\leveleditor.h",
+            "e:\\jinyiweiperfoce\\engine\\source\\editor\\leveleditor\\public\\ileveleditor.h",
+            "e:\\jinyiweiperfoce\\engine\\source\\runtime\\engine\\public\\elements\\framework\\engineelementslibrary.h",
+            "e:\\jinyiweiperfoce\\engine\\intermediate\\build\\win64\\unrealeditor\\inc\\engine\\uht\\engineelementslibrary.generated.h",
+            "e:\\jinyiweiperfoce\\engine\\source\\editor\\leveleditor\\public\\viewporttypedefinition.h",
+            "e:\\jinyiweiperfoce\\engine\\source\\editor\\leveleditor\\public\\leveleditoroutlinersettings.h",
+            "e:\\jinyiweiperfoce\\engine\\source\\developer\\toolwidgets\\public\\filters\\genericfilter.h",
+            "e:\\jinyiweiperfoce\\engine\\source\\developer\\toolwidgets\\public\\filters\\filterbase.h",
+            "e:\\jinyiweiperfoce\\projects\\jinyiwei\\plugins\\blueprintimplementinspect\\source\\blueprintimplementinspect\\private\\sblueprintimplementinspectwidget.h"
+        ],
+        "ImportedModules": [],
+        "ImportedHeaderUnits": []
+    }
+}
