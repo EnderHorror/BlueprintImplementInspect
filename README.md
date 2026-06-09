@@ -1,120 +1,149 @@
 # Blueprint Implement Inspect
 
-一个 Unreal Engine 编辑器插件，用于扫描指定目录下的蓝图资产，检测每个蓝图是否包含可执行的图表逻辑，并以列表形式展示节点数量统计信息。
+`Blueprint Implement Inspect` 是一个 Unreal Engine 编辑器插件，用于批量扫描蓝图、判断蓝图是否包含可执行逻辑，并把选中的蓝图导出为适合喂给 LLM 的结构化文本。
 
 ![插件演示](Demo.png)
 
 ---
 
-## 功能特性
+## 功能
 
-- **目录选择**：通过弹出式路径选择器，选定要扫描的 Content 目录（支持子目录递归扫描）
-- **基类筛选**：选择蓝图基类（支持 UObject、UserWidget 等任意抽象类），仅扫描该类的派生蓝图
-- **异步扫描**：扫描任务在编辑器主线程上分帧执行（每帧处理 10 个资产），不阻塞编辑器操作
-- **进度条显示**：扫描过程中实时显示进度，支持随时取消
-- **节点统计**：统计每个蓝图的总节点数及逻辑节点数（含连接了执行引脚的节点）
-- **逻辑判定**：将蓝图标记为"有逻辑"或"纯配置"
-- **父类显示**：列表中显示每个蓝图的直接父类名称
-- **列排序**：点击"总节点数"或"逻辑节点数"列表头可升序/降序排列
-- **定位资产**：点击列表中的任意蓝图行，自动在 Content Browser 中定位并高亮该资产
-- **LLM文本导出**：选中扫描结果中的蓝图后，可复制或保存完整蓝图文本，包含类信息、接口、变量、CDO默认值、图表、函数、节点、引脚连接和接近 Ctrl+C 的节点文本
-
----
-
-## 安装方式
-
-该插件已包含在项目的 `Plugins/BlueprintImplementInspect/` 目录下，并已在 `JinYiWei.uproject` 中启用，无需额外安装。
-
-重新生成项目文件后在 Unreal Editor 中编译即可使用。
+- **扫描蓝图资产**：选择 Content 目录后递归扫描蓝图资源。
+- **按基类过滤**：可指定 `AActor`、`UUserWidget`、`UObject` 等任意蓝图基类，只显示对应派生蓝图。
+- **异步分帧扫描**：扫描过程不会长时间阻塞编辑器，扫描中可随时取消。
+- **统计节点数量**：统计每个蓝图的总节点数和逻辑节点数。
+- **判断是否有逻辑**：根据已连接执行引脚的节点判断蓝图是“有逻辑”还是“纯配置”。
+- **结果排序查看**：支持按总节点数、逻辑节点数排序，方便快速找出复杂蓝图。
+- **定位蓝图资产**：点击扫描结果中的蓝图，可在 Content Browser 中自动定位。
+- **导出 LLM 文本**：选中蓝图后可复制或保存完整文本，包含类信息、变量、CDO 默认值、图表、函数、节点、Pin、连接关系和接近编辑器 Ctrl+C 的节点文本。
+- **配合 Skill 还原脚本**：导出的文本可配合 `blueprint-text-to-script` Skill 转换为 UE Angelscript、C++ 或伪代码。
 
 ---
 
-## 使用方法
+## 插件安装
 
-### 打开插件窗口
+该插件已放在项目目录中：
 
-插件窗口可通过以下三种方式打开：
+`Projects/JinYiWei/Plugins/BlueprintImplementInspect/`
+
+并已在 `Projects/JinYiWei/JinYiWei.uproject` 中启用，一般无需额外安装。
+
+如果是首次拉取或插件未显示：
+
+1. 关闭 Unreal Editor。
+2. 重新生成项目文件。
+3. 打开 `JinYiWei.uproject`。
+4. 编译 Editor。
+5. 在插件列表或菜单中确认 `Blueprint Implement Inspect` 已启用。
+
+---
+
+## 插件使用
+
+### 打开窗口
+
+插件窗口可从以下入口打开：
 
 | 入口 | 路径 |
 |------|------|
-| 菜单栏 | **工具（Tools）** → Blueprint Implement Inspect |
-| 菜单栏 | **窗口（Window）** → Blueprint Implement Inspect |
+| 菜单栏 | **Tools** → **Blueprint Implement Inspect** |
+| 菜单栏 | **Window** → **Blueprint Implement Inspect** |
 | 工具栏 | Play 工具栏中的 **BII** 按钮 |
 
-### 操作步骤
+### 扫描蓝图
 
-1. **选择扫描目录**  
-   点击左上角"选择目录"按钮，在弹出的路径选择器中选择要扫描的 Content 路径（默认为 `/Game`）。
+1. 点击 **选择目录**。
+2. 选择要扫描的 Content 路径，默认可使用 `/Game`。
+3. 在基类选择器中选择目标基类，例如 `AActor`、`UUserWidget`。
+4. 点击 **3) 扫描蓝图**。
+5. 等待扫描完成，或在扫描过程中点击按钮取消。
 
-2. **选择蓝图基类**  
-   在基类选择器中输入或选择目标基类（如 `UUserWidget`、`AActor` 等），扫描将只返回该类的派生蓝图。
+扫描结果会显示：
 
-3. **开始扫描**  
-   点击"3) 扫描蓝图"按钮启动异步扫描。扫描中进度条可见，按钮变为"取消扫描"，点击可随时中止。
+| 列名 | 说明 |
+|------|------|
+| 蓝图 | 蓝图资产名称 |
+| 父类 | 蓝图直接父类 |
+| 总节点数 | 蓝图所有图表中的节点数量 |
+| 逻辑节点数 | 连接了执行引脚的逻辑节点数量 |
+| 判定 | 有逻辑 / 纯配置 |
+| 资产路径 | 蓝图资源路径 |
 
-4. **查看结果**  
-   扫描完成后，结果以列表展示，包含以下列：
+### 定位蓝图
 
-   | 列名 | 说明 |
-   |------|------|
-   | 蓝图 | 蓝图资产名称 |
-   | 父类 | 蓝图的直接父类名称 |
-   | 总节点数 | 所有图表中节点总数（可排序） |
-   | 逻辑节点数 | 连接了执行引脚的节点数（可排序） |
-   | 判定 | 有逻辑 / 纯配置 |
-   | 资产路径 | 蓝图在 Content 中的路径 |
+点击结果列表中的任意蓝图行，插件会在 Content Browser 中定位并高亮该蓝图资产。
 
-5. **定位蓝图**  
-   点击列表中任意一行，Content Browser 将自动定位并选中对应蓝图资产。
+### 导出给 LLM 的蓝图文本
 
-6. **导出蓝图文本给 LLM**  
-   选中列表中的蓝图后，点击 **4) 复制选中蓝图文本** 可直接复制到剪贴板；点击 **保存为TXT** 可输出到文本文件。导出内容包含：
+1. 先在结果列表中选中一个蓝图。
+2. 点击 **4) 复制选中蓝图文本**，将文本复制到剪贴板。
+3. 或点击 **保存为TXT**，把文本保存为文件。
 
-   | 区块 | 说明 |
-   |------|------|
-   | Class | 蓝图类型、编译状态、父类、接口 |
-   | Blueprint Variables | 蓝图变量名、分类、Pin 类型、默认值、完整元数据 |
-   | CDO Defaults | GeneratedClass CDO 上可编辑属性的导出值 |
-   | Graphs | Ubergraph、函数图、宏图、委托签名图的节点、引脚、连接 |
-   | CtrlCNodeText | 使用 Unreal 图节点导出接口生成的节点复制文本，接近编辑器 Ctrl+C 节点格式 |
+导出文本包含：
 
----
-
-## 逻辑节点判定规则
-
-- 遍历蓝图的 **Ubergraph**、**函数图（FunctionGraphs）** 和 **宏图（MacroGraphs）**
-- 满足以下条件的节点计为**逻辑节点**：拥有至少一个已连接的执行引脚（`PC_Exec`）
-- 以下节点类型**不计入**逻辑节点统计：
-  - `UK2Node_FunctionEntry`（函数入口）
-  - `UK2Node_FunctionResult`（函数返回）
-  - `UK2Node_Knot`（连线中转节点）
-  - `UK2Node_Tunnel`（宏出入口）
-- 若蓝图至少有一个逻辑节点，则判定为**有逻辑**，否则为**纯配置**
+| 区块 | 内容 |
+|------|------|
+| `Class` | 蓝图类型、父类、接口、编译状态 |
+| `Blueprint Variables` | 变量名、分类、Pin 类型、默认值、元数据 |
+| `CDO Defaults` | GeneratedClass CDO 上的可编辑属性默认值 |
+| `Graphs` | Ubergraph、函数图、宏图、委托签名图 |
+| `Nodes / Pins / Links` | 节点标题、节点类、Pin 类型、默认值、连接关系 |
+| `CtrlCNodeText` | Unreal 节点导出文本，接近蓝图编辑器 Ctrl+C 格式 |
 
 ---
 
-## 模块依赖
+## Skill 安装
 
-```
-ApplicationCore, AssetRegistry, BlueprintGraph, ClassViewer,
-ContentBrowser, CoreUObject, DesktopPlatform, EditorFramework,
-Engine, GraphEditor, InputCore, Kismet, PropertyEditor,
-Projects, Slate, SlateCore, ToolMenus, UnrealEd
-```
+`blueprint-text-to-script` 是配套的 Copilot Skill，用于把本插件导出的蓝图文本还原为脚本草案。
+
+Skill 文件位置：
+
+`c:\Users\Ender\.copilot\skills\blueprint-text-to-script\SKILL.md`
+
+如果需要手动安装：
+
+1. 创建目录：`c:\Users\Ender\.copilot\skills\blueprint-text-to-script\`
+2. 将 `SKILL.md` 放入该目录。
+3. 重启 VS Code 或重新打开 Copilot Chat。
+4. 在聊天中使用包含 `blueprint-text-to-script`、`BlueprintImplementInspect`、`# Blueprint LLM Export`、`还原成脚本`、`Angelscript` 等关键词的请求。
 
 ---
 
-## 文件结构
+## Skill 使用
 
-```
-Plugins/BlueprintImplementInspect/
-├── BlueprintImplementInspect.uplugin
-└── Source/BlueprintImplementInspect/
-    ├── BlueprintImplementInspect.Build.cs
-    ├── Public/
-    │   └── BlueprintImplementInspectModule.h
-    └── Private/
-        ├── BlueprintImplementInspectModule.cpp
-        ├── SBlueprintImplementInspectWidget.h
-        └── SBlueprintImplementInspectWidget.cpp
-```
+### 直接粘贴文本
+
+复制插件导出的文本后，在 Copilot Chat 中输入：
+
+> 使用 `blueprint-text-to-script`，把下面这个 `BlueprintImplementInspect` 导出的蓝图文本还原成 UE Angelscript。
+
+然后粘贴完整导出文本。
+
+### 使用导出文件
+
+如果导出为 TXT，可以输入：
+
+> 使用 `blueprint-text-to-script`，读取 `Saved/BlueprintExports/BP_Enemy.txt`，还原成 UE Angelscript，并创建到合适脚本目录。
+
+### 只分析不生成文件
+
+如果只想看逻辑，可以输入：
+
+> 使用 `blueprint-text-to-script`，分析下面的蓝图导出文本，先输出伪代码和无法还原的节点，不要创建文件。
+
+### 推荐使用方式
+
+- 需要脚本时，明确目标语言：`Angelscript`、`C++` 或 `伪代码`。
+- 需要落盘时，说明“创建文件”或提供目标目录。
+- 对无法确定的节点，允许 Skill 用 TODO 保留原节点标题。
+- 如果蓝图很复杂，建议先让 Skill 输出伪代码，再生成正式脚本。
+
+---
+
+## 适用场景
+
+- 找出项目中真正包含逻辑的蓝图。
+- 批量分析 Widget、Actor、Object 派生蓝图复杂度。
+- 把蓝图逻辑整理成 LLM 可理解的文本。
+- 让 LLM 基于导出文本生成 Angelscript、C++ 或伪代码。
+- 辅助蓝图逻辑迁移、重构、审查和文档化。
