@@ -37,8 +37,6 @@ private:
 	const UClass* GetSelectedBaseClass() const;
 	void OnSetBaseClass(const UClass* InClass);
 	FReply OnScanButtonClicked();
-	FReply OnCopySelectedBlueprintTextClicked();
-	FReply OnSaveSelectedBlueprintTextClicked();
 	void OnResultSelectionChanged(TSharedPtr<FBlueprintInspectItem> InItem, ESelectInfo::Type SelectInfo);
 	void OnResultSortChanged(EColumnSortPriority::Type Priority, const FName& ColumnId, EColumnSortMode::Type NewSortMode);
 	EColumnSortMode::Type GetColumnSortMode(const FName ColumnId) const;
@@ -50,12 +48,6 @@ private:
 	int32 CountAllNodes(class UBlueprint* Blueprint) const;
 	int32 CountLogicNodes(class UBlueprint* Blueprint) const;
 	bool IsLogicNode(const UEdGraphNode* Node) const;
-	class UBlueprint* LoadBlueprintFromItem(const TSharedPtr<FBlueprintInspectItem>& InItem) const;
-	FString ExportBlueprintToText(class UBlueprint* Blueprint, const FString& AssetPath) const;
-	void AppendBlueprintClassInfo(FStringBuilderBase& Builder, class UBlueprint* Blueprint) const;
-	void AppendBlueprintVariables(FStringBuilderBase& Builder, class UBlueprint* Blueprint) const;
-	void AppendBlueprintGraphs(FStringBuilderBase& Builder, class UBlueprint* Blueprint) const;
-	void AppendClassDefaults(FStringBuilderBase& Builder, class UBlueprint* Blueprint) const;
 	void RefreshSummaryText();
 
 private:
@@ -63,7 +55,6 @@ private:
 	UClass* SelectedBaseClass = UObject::StaticClass();
 
 	TArray<TSharedPtr<FBlueprintInspectItem>> ScanItems;
-	TSharedPtr<FBlueprintInspectItem> SelectedItem;
 	TSharedPtr<class SListView<TSharedPtr<FBlueprintInspectItem>>> ResultListView;
 	TSharedPtr<class STextBlock> SummaryText;
 	TSharedPtr<class SProgressBar> ScanProgressBar;
