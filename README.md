@@ -20,20 +20,6 @@
 
 ---
 
-## 插件安装
-
-该插件已放在项目目录中：
-
-如果是首次拉取或插件未显示：
-
-1. 关闭 Unreal Editor。
-2. 重新生成项目文件。
-3. 打开 `JinYiWei.uproject`。
-4. 编译 Editor。
-5. 在插件列表或菜单中确认 `Blueprint Implement Inspect` 已启用。
-
----
-
 ## 插件使用
 
 ### 打开窗口
